@@ -74,6 +74,9 @@ class XmippProtConsensusPicking(ProtParticlePicking):
             deps.append(stepId)
         self._insertFunctionStep("createOutputStep", prerequisites=deps)
     
+    def getInputMicrographs(self):
+        return self.inputCoordinates[0].get().getMicrographs()
+    
     def _summary(self):
         message = []
         for i, coordinates in enumerate(self.inputCoordinates):
@@ -87,14 +90,22 @@ class XmippProtConsensusPicking(ProtParticlePicking):
         return []    
     
     def calculateConsensusStep(self, micId):
+        # Take the sampling rates
+        Tm = []
+        for coordinates in self.inputCoordinates:
+            Tm.append(coordinates.get().getMicrographs().getSamplingRate())
+        
         # Get all coordinates for this micrograph
         coords = []
         Ncoords = 0
+        n=0
         for coordinates in self.inputCoordinates:
             coordArray = np.asarray([x.getPosition() 
                                      for x in coordinates.get().iterCoordinates(micId)])
+            coordArray *= Tm[n]/Tm[0]
             coords.append(coordArray)
             Ncoords += coordArray.shape[0]
+            n+=1
         
         allCoords = np.zeros([Ncoords,2])
         votes = np.zeros(Ncoords)
@@ -162,4 +173,4 @@ class XmippProtConsensusPicking(ProtParticlePicking):
         self._defineOutputs(outputCoordinates=setOfCoordinates)
         
         for coordinates in self.inputCoordinates:
-            self._defineSourceRelation(coordinates.get(), self.outputCoordinates)
+            self._defineSourceRelation(coordinates, self.outputCoordinates)

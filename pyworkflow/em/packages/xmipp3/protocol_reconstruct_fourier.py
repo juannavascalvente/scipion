@@ -91,6 +91,7 @@ class XmippProtReconstructFourier(ProtReconstruct3D):
         params += ' --max_resolution %0.3f' % self.maxRes.get()
         params += ' --padding %0.3f' % self.pad.get()
         params += ' --thr %d' % self.numberOfThreads.get()
+        params += ' --sampling %f' % self.inputParticles.get().getSamplingRate()
         self._insertFunctionStep('reconstructStep', params)
         
     #--------------------------- STEPS functions --------------------------------------------
@@ -114,7 +115,7 @@ class XmippProtReconstructFourier(ProtReconstruct3D):
         volume.setSamplingRate(imgSet.getSamplingRate())
         
         self._defineOutputs(outputVolume=volume)
-        self._defineSourceRelation(imgSet, volume)
+        self._defineSourceRelation(self.inputParticles, volume)
     
     #--------------------------- INFO functions -------------------------------------------- 
     def _validate(self):
