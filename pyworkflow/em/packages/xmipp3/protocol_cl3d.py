@@ -32,20 +32,21 @@ from pyworkflow.protocol.params import (PointerParam, FloatParam, STEPS_PARALLEL
 from pyworkflow.em.data import Volume
 from pyworkflow.em import Viewer
 import pyworkflow.em.metadata as md
-from pyworkflow.em.protocol import ProtAnalysis3D
+from pyworkflow.em.protocol import ProtClassify3D
 from pyworkflow.utils.path import moveFile, makePath
 from pyworkflow.em.packages.xmipp3.convert import (writeSetOfParticles,
                                                    getImageLocation,
                                                    readSetOfParticles)
+from pyworkflow.em.protocol.protocol_3d import ProtClassify3D
 
 
-class XmippProtCL3D(ProtAnalysis3D):
+class XmippProtCL3D(ProtClassify3D):
     """    
     Method to obtain a set of 3D classes 
     """
-    _label = 'CL3D'
+    _label = 'cl3d'
     def __init__(self, *args, **kwargs):
-        ProtAnalysis3D.__init__(self, *args, **kwargs)
+        ProtClassify3D.__init__(self, *args, **kwargs)
 
     #--------------------------- DEFINE param functions --------------------------------------------   
     def _defineParams(self, form):
@@ -90,15 +91,22 @@ class XmippProtCL3D(ProtAnalysis3D):
         
         sym = self.symmetryGroup.get()
         initVol= self.inputVolume.get()
+        volName = getImageLocation(initVol)            
+        volDirGallery  = self._getExtraPath()     
+             
+        pmStepId = self._insertFunctionStep('projectionLibraryStep', 
+                                                     volName, volDirGallery,
+                                                     prerequisites=[convertId])
         
         for i in range(0,self.numIntermediateVolumes):
+            
             volName = getImageLocation(initVol)
             volDir = self._getVolDir(i+1)
             
-            randomWeightsId = self._insertFunctionStep('randomWeigthsProjectionImages', 
+            randomWeightsId = self._insertFunctionStep('reconstructWithRandomWeigths', 
                                                  volName, volDir,
                                                  commonParams, 
-                                                 prerequisites=[convertId])
+                                                 prerequisites=[pmStepId])
 
             projStepId = self._insertFunctionStep('projectionMatchingStep', 
                                                  volName, volDir,
@@ -135,7 +143,7 @@ class XmippProtCL3D(ProtAnalysis3D):
         params += ' --useForValidation %d' % self.numOrientations.get()
         return params
                     
-    def significantStep(self, volName, volDir, anglesPath, params):
+    def reconstructWithRandomWeigths(self, volName, volDir, anglesPath, params):
 
         nproc = self.numberOfMpi.get()
         nT=self.numberOfThreads.get() 
@@ -242,7 +250,7 @@ class XmippProtCL3D(ProtAnalysis3D):
     
     #--------------------------- UTILS functions --------------------------------------------
     def _getVolDir(self, volIndex):
-        return self._getTmpPath('vol%03d' % volIndex)
+        return self._getExtraPath('vol%03d' % volIndex)
     
         
     def _defineMetadataRootName(self, mdrootname,volId):

@@ -97,6 +97,7 @@ from protocol_screen_classes import XmippProtScreenClasses
 from protocol_screen_particles import XmippProtScreenParticles
 from protocol_split_volume import XmippProtSplitvolume
 from protocol_validate_nontilt import XmippProtValidateNonTilt
+from protocol_cl3d import XmippProtCL3D
 from protocol_volume_strain import XmippProtVolumeStrain
 
 # Wizards
