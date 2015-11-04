@@ -27,7 +27,7 @@
 from os.path import join, isfile
 from shutil import copyfile
 from pyworkflow.object import Float, String
-from pyworkflow.protocol.params import (PointerParam, FloatParam, STEPS_PARALLEL,
+from pyworkflow.protocol.params import (PointerParam, FloatParam, IntParam,STEPS_PARALLEL,
                                         StringParam, BooleanParam, LEVEL_ADVANCED)
 from pyworkflow.em.data import Volume
 from pyworkflow.em import Viewer
@@ -57,7 +57,7 @@ class XmippProtCL3D(ProtClassify3D):
                       help='Select the input volumes.')     
                 
         form.addParam('inputParticles', PointerParam, label="Input particles", important=True, 
-                      pointerClass='SetOfParticles', pointerCondition=['hasAlignment','hasCTF'],
+                      pointerClass='SetOfParticles', pointerCondition=['hasAlignment'],
                       help='Select the input projection images.')
             
         form.addParam('symmetryGroup', StringParam, default='c1',
@@ -74,16 +74,13 @@ class XmippProtCL3D(ProtClassify3D):
                       help='Parameter to define the number of most similar volume \n' 
                       '    projected images for each projection image')
         
-        form.addParam('phaseFlipped', BooleanParam, default=False,
-                      label="Is the data already phase flipped?",
-                      help='In case the data has been already phase flipped select True')
                 
         form.addParallelSection(threads=1, mpi=1)
                 
 
     #--------------------------- INSERT steps functions --------------------------------------------
     def _insertAllSteps(self):   
-             
+        
         convertId = self._insertFunctionStep('convertInputStep', 
                                              self.inputParticles.get().getObjId())
         deps = [] # store volumes steps id to use as dependencies for last step
@@ -94,32 +91,42 @@ class XmippProtCL3D(ProtClassify3D):
         volName = getImageLocation(initVol)            
         volDirGallery  = self._getExtraPath()     
              
-        pmStepId = self._insertFunctionStep('projectionLibraryStep', 
-                                                     volName, volDirGallery,
-                                                     prerequisites=[convertId])
+        #pmStepId = self._insertFunctionStep('projectionLibraryStep',
+        #                                             volName, volDirGallery,
+        #                                             prerequisites=[convertId])
         
-        for i in range(0,self.numIntermediateVolumes):
+        for i in range(0, int(self.numIntermediateVolumes.get())):
             
             volName = getImageLocation(initVol)
             volDir = self._getVolDir(i+1)
             
             randomWeightsId = self._insertFunctionStep('reconstructWithRandomWeigths', 
-                                                 volName, volDir,
-                                                 commonParams, 
-                                                 prerequisites=[pmStepId])
+                                                 volName, volDir,sym,                                                  
+                                                 prerequisites=[convertId])
 
+            pmStepId = self._insertFunctionStep('projectionLibraryStep', 
+                                                 volName, volDir,
+                                                 prerequisites=[randomWeightsId])
+                
+                
             projStepId = self._insertFunctionStep('projectionMatchingStep', 
                                                  volName, volDir,
                                                  commonParams, 
-                                                 prerequisites=[randomWeightsId])
+                                                 prerequisites=[pmStepId])
             
-
-            volStepId = self._insertFunctionStep('angleEvaluationStep', 
-                                                 volName, volDir,
-                                                 sym,
+            
+            prevWeightsId = self._insertFunctionStep('reconstructWithPreviousWeigths', 
+                                                 volName, volDir,sym,                                                  
                                                  prerequisites=[projStepId])
+
+                        
+
+            #volStepId = self._insertFunctionStep('angleEvaluationStep', 
+            #                                     volName, volDir,
+            #                                     sym,
+            #                                     prerequisites=[projStepId])
             
-            deps.append(volStepId)
+            deps.append(prevWeightsId)
             
         self._insertFunctionStep('createOutputStep', 
                                  prerequisites=deps)
@@ -129,47 +136,92 @@ class XmippProtCL3D(ProtClassify3D):
         particlesId: is only need to detect changes in
         input particles and cause restart from here.
         """
-        a = self.inputParticles.get() 
-        print a.printAll() 
-        writeSetOfParticles(self.inputParticles.get(), 
+        a = self.inputParticles.get()        
+        writeSetOfParticles(self.inputParticles.get(),
                             self._getPath('input_particles.xmd'))
                     
-    def _getCommonParams(self):
-        params =  '  -i %s' % self._getPath('input_particles.xmd')        
-        params += ' --sym %s' % self.symmetryGroup.get()
-        params += ' --alpha0 0.05 --alphaF 0.05'
-        params += ' --angularSampling %0.3f' % self.angularSampling.get()
-        params += ' --dontReconstruct'
-        params += ' --useForValidation %d' % self.numOrientations.get()
+    def _getCommonParams(self):                
+        params = ' --Ri 0.0'
+        params += ' --Ro %0.3f' % ((self.inputParticles.get().getDimensions()[0])/2)
+        params += ' --max_shift %0.3f' % ((self.inputParticles.get().getDimensions()[0])/20)
+        params += ' --append' 
+        params += ' --search5d_shift 0'                            
         return params
                     
-    def reconstructWithRandomWeigths(self, volName, volDir, anglesPath, params):
+    def reconstructWithRandomWeigths(self, volName, volDir, sym):
 
+        #tmpAngleFile = volDir+'/angles_iter000_00.xmd'       
+        makePath(volDir)
+        #copyfile(self._getPath('input_particles.xmd'),tmpAngleFile)
+        params =  ' -i %s' % self._getPath('input_particles.xmd')
+        params += ' -o %s' % volDir+'/angles_iter000_00.xmd'
+        params += ' --fill weight rand_uniform '
+        self.runJob('xmipp_metadata_utilities',
+                    params, numberOfMpi=1,numberOfThreads=1)
+        
+        tmpReconsFile = volDir+'/vol001_00.vol'
+        params =  ' -i %s' % volDir+'/angles_iter000_00.xmd'
+        params += ' -o %s' % tmpReconsFile 
+        params += ' --sym %s' % sym
+        params += ' --weight'
+        
+        nproc = self.numberOfMpi.get()
+        nT=self.numberOfThreads.get()
+         
+        self.runJob('xmipp_reconstruct_fourier',
+                    params, numberOfMpi=nproc,numberOfThreads=nT)
+
+                
+    def projectionLibraryStep(self, volName, volDir):
+        
+        # Generate projections from this reconstruction        
         nproc = self.numberOfMpi.get()
         nT=self.numberOfThreads.get() 
-        makePath(volDir)  
-        params += '  --initvolumes %s' % volName  
-        params += ' --odir %s' % volDir
-        params += ' --iter %d' % 1
-        self.runJob('xmipp_reconstruct_significant', 
+        
+        makePath(volDir)
+        fnGallery= (volDir+'/gallery.stk')
+        params = '-i %s -o %s --sampling_rate %f --sym %s --method fourier 1 0.25 bspline --compute_neighbors --angular_distance %f --experimental_images %s --max_tilt_angle 90'\
+                    %(volName,fnGallery,self.angularSampling.get(),self.symmetryGroup.get(), -1, volDir+'/angles_iter000_00.xmd')
+        
+        print params
+        self.runJob("xmipp_angular_project_library", params, numberOfMpi=nproc, numberOfThreads=nT)                    
+        #self.runJob("ldd","`which xmipp_mpi_angular_project_library`",numberOfMpi=1)                    
+
+    def projectionMatchingStep(self, volName, volDir, params):
+
+        nproc = self.numberOfMpi.get()
+        nT=self.numberOfThreads.get()
+        
+        params += '  -i %s' % volDir+'/angles_iter000_00.xmd' 
+        params += '  -o %s' % (volDir+'/angles_iter001_00.xmd')
+        params += ' --ref %s' % (volDir+'/gallery.stk')
+        self.runJob('xmipp_angular_projection_matching', 
                     params, numberOfMpi=nproc,numberOfThreads=nT)
-        copyfile(volDir+'/angles_iter001_00.xmd', self._getExtraPath(anglesPath))
         
-    def validationStep(self, volName,volDir,sym):
-        makePath(volDir)  
-        aFile = self._getExtraPath('exp_particles.xmd')
-        aFileRef =self._getExtraPath('ref_particles.xmd')
-        params = '  --volume %s' % volName  
-        params += '  --angles_file %s' % aFile
-        params += '  --angles_file_ref %s' % aFileRef
-        params += ' --odir %s' % volDir
+        
+    def reconstructWithPreviousWeigths(self, volName, volDir, sym):
+
+        #tmpAngleFile = volDir+'/angles_iter000_00.xmd'       
+        #copyfile(self._getPath('input_particles.xmd'),tmpAngleFile)
+        params = ' -i %s' % volDir+'/angles_iter000_00.xmd'
+        params +=  ' --set merge %s' % volDir+'/angles_iter001_00.xmd'        
+        params += ' -o %s' % volDir+'/angles_iter002_00.xmd'
+        self.runJob('xmipp_metadata_utilities',
+                    params, numberOfMpi=1,numberOfThreads=1)
+        
+        tmpReconsFile = volDir+'/vol002_00.vol'
+        params =  ' -i %s' % volDir+'/angles_iter002_00.xmd'
+        params += ' -o %s' % tmpReconsFile 
         params += ' --sym %s' % sym
+        params += ' --weight'
         
-        if (self.doNotUseWeights.get()) :
-            params += ' --dontUseWeights'
-            
-        self.runJob('xmipp_multireference_aligneability', params,numberOfMpi=1,numberOfThreads=1)
+        nproc = self.numberOfMpi.get()
+        nT=self.numberOfThreads.get()
+         
+        self.runJob('xmipp_reconstruct_fourier',
+                    params, numberOfMpi=nproc,numberOfThreads=nT)
         
+
     def createOutputStep(self):
         outputVols = self._createSetOfVolumes()
         imgSet = self.inputParticles.get()
@@ -208,7 +260,7 @@ class XmippProtCL3D(ProtClassify3D):
     def _validate(self):
         validateMsgs = []
         # if there are Volume references, it cannot be empty.
-        if self.inputVolumes.get() and not self.inputVolumes.hasValue():
+        if self.inputVolume.get() and not self.inputVolume.hasValue():
             validateMsgs.append('Please provide an input reference volume.')
         if self.inputParticles.get() and not self.inputParticles.hasValue():
             validateMsgs.append('Please provide input particles.')            
