@@ -26,6 +26,29 @@
 #include "reconstruct_significant.h"
 #include <algorithm>
 
+class CorrList
+{
+public:
+	std::vector<double> corrList;
+	void addCorrelation(double corr)
+	{
+		corrList.insert(std::upper_bound(corrList.begin(), corrList.end(), corr), corr);
+	}
+	void clear()
+	{
+		corrList.clear();
+	}
+	double getPercentile(double alpha)
+	{
+		const size_t minLength=20;
+		size_t s=corrList.size();
+		if (s<minLength)
+			return 0;
+		size_t idx=(size_t)(alpha*s);
+		return corrList[idx];
+	}
+};
+
 // Define params
 ProgReconstructSignificant::ProgReconstructSignificant()
 {
@@ -57,6 +80,8 @@ void ProgReconstructSignificant::defineParams()
     addParamsLine("  [--useImed]                  : Use Imed for weighting");
     addParamsLine("  [--strictDirection]          : Images not significant for a direction are also discarded");
     addParamsLine("  [--angDistance <a=10>]       : Angular distance");
+    addParamsLine("  [--speedup <s=0.7>]          : Speed-up factor (0=no speed up; 1=max. speed-up)");
+    addParamsLine("                               :+This is the fraction of images in the gallery that are not aligned to the extreme");
     addParamsLine("  [--dontApplyFisher]          : Do not select directions using Fisher");
     addParamsLine("  [--dontReconstruct]          : Do not reconstruct");
     addParamsLine("  [--useForValidation <numOrientationsPerParticle=10>] : Use the program for validation. This number defines the number of possible orientations per particle");
@@ -86,6 +111,7 @@ void ProgReconstructSignificant::readParams()
     doReconstruct=!checkParam("--dontReconstruct");
     useForValidation=checkParam("--useForValidation");
     numOrientationsPerParticle = getIntParam("--useForValidation");
+    speedup = getDoubleParam("--speedup");
 
     if (!doReconstruct)
     {
@@ -115,6 +141,7 @@ void ProgReconstructSignificant::show()
         std::cout << "Apply Fisher                : "  << applyFisher << std::endl;
         std::cout << "Reconstruct                 : "  << doReconstruct << std::endl;
         std::cout << "useForValidation            : "  << useForValidation << std::endl;
+        std::cout << "Speedup                     : "  << speedup << std::endl;
 
         if (fnSym != "")
             std::cout << "Symmetry for projections    : "  << fnSym << std::endl;
@@ -171,10 +198,13 @@ void ProgReconstructSignificant::alignImagesToGallery()
 
 	MultidimArray<double> ccVol(Nvols);
 	MDRow row;
+	double bestCorrS0, thresholdCorrS0;
+	CorrList corrlist;
 	FOR_ALL_OBJECTS_IN_METADATA(mdIn)
 	{
 		if ((nImg+1)%Nprocessors==rank)
 		{
+			corrlist.clear();
 			mdIn.getValue(MDL_IMAGE,fnImg,__iter.objId);
 			mdIn.getRow(row,__iter.objId);
 #ifdef DEBUG
@@ -198,8 +228,10 @@ void ProgReconstructSignificant::alignImagesToGallery()
 					mCurrentImageAligned=mCurrentImage;
 					mGalleryProjection.aliasImageInStack(gallery[nVolume](),nDir);
 					mGalleryProjection.setXmippOrigin();
+					thresholdCorrS0=corrlist.getPercentile(speedup);
 					double corr=alignImagesConsideringMirrors(mGalleryProjection,transforms[nDir],
-							mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP);
+							mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP,bestCorrS0,NULL,thresholdCorrS0);
+					corrlist.addCorrelation(bestCorrS0);
 //					double corr=alignImagesConsideringMirrors(mGalleryProjection,
 //							mCurrentImageAligned,M,aux,aux2,aux3,DONT_WRAP);
 					M=M.inv();

@@ -83,6 +83,9 @@ public:
     /** Do reconstruct */
     bool doReconstruct;
 
+    /** Alignment speed-up */
+    double speedup;
+
     /** Use it for validation */
     bool useForValidation;
 
