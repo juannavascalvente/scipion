@@ -244,6 +244,7 @@ void AutoParticlePicking2::extractPositiveInvariant()
         positiveParticleStack.resize(numPosPart+num_part, 1, particle_size+1, particle_size+1);
         positiveInvariatnStack.resize(numPosInv+num_part*num_correlation, 1, NangSteps, NRsteps);
     }
+    double bestCorrS0;
     for (int i=0;i<num_part;i++)
     {
         int x=(int)((m.coord(i).X)*scaleRate);
@@ -269,7 +270,7 @@ void AutoParticlePicking2::extractPositiveInvariant()
                 particleAvg+=pieceImage;
             else
             {
-                alignImages(particleAvg,pieceImage,M,true,aux,aux2,aux3);
+                alignImages(particleAvg,pieceImage,M,true,aux,aux2,aux3,bestCorrS0);
                 particleAvg+=pieceImage;
             }
         }
@@ -1309,6 +1310,7 @@ void AutoParticlePicking2::extractPositiveInvariant(const FileName &fnInvariantF
     FileName fnPositiveParticles=fnParticles+"_Positive.stk";
     IpolarCorr.initZeros(num_correlation,1,NangSteps,NRsteps);
 
+    double bestCorrS0;
     for (int i=0;i<num_part;i++)
     {
         double cost = mPrev.coord(i).cost;
@@ -1331,7 +1333,7 @@ void AutoParticlePicking2::extractPositiveInvariant(const FileName &fnInvariantF
                 particleAvg=particleAvg+pieceImage;
             else
             {
-                alignImages(particleAvg,pieceImage,M,true,aux,aux2,aux3);
+                alignImages(particleAvg,pieceImage,M,true,aux,aux2,aux3,bestCorrS0);
                 particleAvg=particleAvg+pieceImage;
             }
         }

@@ -76,7 +76,8 @@ double ProgTransformDimRed::progCorrelationDistance(size_t i1, size_t i2)
 {
     extractImageFromDataMatrix(i1,I1);
     extractImageFromDataMatrix(i2,I2);
-    double corr=alignImages(I1,I2,M,true,aux,aux2,aux3);
+    double bestCorrS0;
+    double corr=alignImages(I1,I2,M,true,aux,aux2,aux3,bestCorrS0);
     return 1.-corr;
 }
 

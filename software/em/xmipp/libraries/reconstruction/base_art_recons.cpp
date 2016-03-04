@@ -942,9 +942,10 @@ void SinPartARTRecons::singleStep(GridVolume &vol_in, GridVolume *vol_out,
         save()=theo_proj(); save.write("PPPtheo.xmp");
         save()=read_proj(); save.write("PPPread.xmp");
         */
-        alignImages(theo_proj(),read_proj(),M);
+        double bestCorrS0;
+        alignImages(theo_proj(),read_proj(),M,bestCorrS0);
         //save()=read_proj(); save.write("PPPread_aligned.xmp");
-        std::cout << M << std::endl;
+        //std::cout << M << std::endl;
         read_proj().rangeAdjust(theo_proj());
         //save()=read_proj(); save.write("PPPread_aligned_grey.xmp");
         //std::cout << "Press any key\n";

@@ -140,7 +140,7 @@ void normalizedPolarFourierTransform(const MultidimArray<double> &in,
 
 // Best rotation -----------------------------------------------------------
 double best_rotation(const Polar<std::complex<double> > &I1,
-		const Polar<std::complex<double> > &I2, RotationalCorrelationAux &aux) {
+		const Polar<std::complex<double> > &I2, RotationalCorrelationAux &aux, double &bestCorr) {
 	MultidimArray<double> angles;
 	rotationalCorrelation(I1, I2, angles, aux);
 
@@ -157,6 +157,7 @@ double best_rotation(const Polar<std::complex<double> > &I1,
 		}
 
 	// Return the corresponding angle
+	bestCorr=maxval;
 	return DIRECT_A1D_ELEM(angles,imax);
 }
 
@@ -176,7 +177,8 @@ void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,
 	MultidimArray<double> rotationalCorr;
 	rotationalCorr.resize(2 * polarFourierI2.getSampleNoOuterRing() - 1);
 	aux.local_transformer.setReal(rotationalCorr);
-	double bestRot = best_rotation(polarFourierI1, polarFourierI2, aux);
+	double bestCorr;
+	double bestRot = best_rotation(polarFourierI1, polarFourierI2, aux, bestCorr);
 
 	MultidimArray<double> tmp = I2;
 	rotate(splineOrder, I2, tmp, -bestRot, 'Z', wrap);

@@ -172,7 +172,8 @@ void ProgAlignDualTiltSeries::findParametersAt0degrees(bool rotateDual)
     save.write("PPPdual0.xmp");
 #endif
 
-    alignImages(Iref(), Idual(), M0);
+    double bestCorrS0;
+    alignImages(Iref(), Idual(), M0, bestCorrS0);
     M0inv=M0.inv();
 #ifdef DEBUG
 

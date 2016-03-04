@@ -233,6 +233,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
     {
 		double shiftXSR=INITIAL_SHIFT_THRESHOLD, shiftYSR=INITIAL_SHIFT_THRESHOLD, bestRotSR=INITIAL_ROTATE_THRESHOLD;
 		double shiftXRS=INITIAL_SHIFT_THRESHOLD, shiftYRS=INITIAL_SHIFT_THRESHOLD, bestRotRS=INITIAL_ROTATE_THRESHOLD;
+		double corr;
 
 		for (int i = 0; i < 3; i++)
 		{
@@ -258,7 +259,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				normalizedPolarFourierTransform(IauxSR, polarFourierI, true,
 												XSIZE(P) / 5, XSIZE(P) / 2-2, plans, 1);
 
-				bestRotSR = best_rotation(polarFourierP, polarFourierI, rotAux);
+				bestRotSR = best_rotation(polarFourierP, polarFourierI, rotAux, corr);
 				rotation2DMatrix(bestRotSR, R);
 				M3x3_BY_M3x3(ASR,R,ASR);
 				applyGeometry(LINEAR, IauxSR, I, ASR, IS_NOT_INV, WRAP);
@@ -276,7 +277,7 @@ void CL2DClass::fitBasic(MultidimArray<double> &I, CL2DAssignment &result,
 				normalizedPolarFourierTransform(IauxRS, polarFourierI, true,
 												XSIZE(P) / 5, XSIZE(P) / 2-2, plans, 1);
 
-				bestRotRS = best_rotation(polarFourierP, polarFourierI, rotAux);
+				bestRotRS = best_rotation(polarFourierP, polarFourierI, rotAux, corr);
 				rotation2DMatrix(bestRotRS, R);
 				M3x3_BY_M3x3(ARS,R,ARS);
 				applyGeometry(LINEAR, IauxRS, I, ARS, IS_NOT_INV, WRAP);

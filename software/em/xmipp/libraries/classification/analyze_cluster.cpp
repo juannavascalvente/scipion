@@ -135,6 +135,7 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
     FileName fnImg;
+    double bestCorrS0;
     FOR_ALL_OBJECTS_IN_METADATA(SFin)
     {
     	SFin.getValue(image_label,fnImg,__iter.objId);
@@ -150,8 +151,8 @@ void ProgAnalyzeCluster::produceSideInfo(MDLabel image_label)
         	ImirrorAligned=Ialigned;
         	ImirrorAligned.selfReverseX();
         	ImirrorAligned.setXmippOrigin();
-            alignImages(mIref,Ialigned,M,WRAP,aux,aux2,aux3);
-            alignImages(mIref,ImirrorAligned,M,WRAP,aux,aux2,aux3);
+            alignImages(mIref,Ialigned,M,WRAP,aux,aux2,aux3,bestCorrS0);
+            alignImages(mIref,ImirrorAligned,M,WRAP,aux,aux2,aux3,bestCorrS0);
             double corr=correlationIndex(mIref,Ialigned,&mask);
             double corrMirror=correlationIndex(mIref,ImirrorAligned,&mask);
             if (corr>corrMirror)

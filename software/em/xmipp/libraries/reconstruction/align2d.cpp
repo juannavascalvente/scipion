@@ -92,6 +92,7 @@ void ProgAlign2d::alignPairs(MetaData &MDin, MetaData &MDout, int level)
     RotationalCorrelationAux aux3;
     std::cerr << "Aligning level " << level << std::endl;
     init_progress_bar(imax);
+    double bestCorrS0;
     for (size_t i=0; i<imax; i++)
     {
         // Read the two input images
@@ -104,9 +105,9 @@ void ProgAlign2d::alignPairs(MetaData &MDin, MetaData &MDout, int level)
         MultidimArray<double> &I1m=I1();
         MultidimArray<double> &I2m=I2();
         if (dont_mirror)
-            alignImages(I1m,I2m,M);
+            alignImages(I1m,I2m,M,bestCorrS0);
         else
-            alignImagesConsideringMirrors(I1m,I2m,M,aux1,aux2,aux3);
+            alignImagesConsideringMirrors(I1m,I2m,M,aux1,aux2,aux3,WRAP,bestCorrS0);
         FOR_ALL_DIRECT_ELEMENTS_IN_MULTIDIMARRAY(I1m)
             DIRECT_MULTIDIM_ELEM(I1m,n)=0.5*(DIRECT_MULTIDIM_ELEM(I1m,n)+
                                              DIRECT_MULTIDIM_ELEM(I2m,n));
@@ -205,6 +206,7 @@ void ProgAlign2d::refinement()
     AlignmentAux aux1;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
+    double bestCorrS0;
     FOR_ALL_OBJECTS_IN_METADATA(SF)
     {
     	SF.getValue(MDL_IMAGE,fnImg,__iter.objId);
@@ -217,9 +219,9 @@ void ProgAlign2d::refinement()
         MultidimArray<double> &Im=I();
         double corr;
         if (dont_mirror)
-            corr=alignImages(Irefm,Im,M);
+            corr=alignImages(Irefm,Im,M,bestCorrS0);
         else
-            corr=alignImagesConsideringMirrors(Irefm,Im,M,aux1,aux2,aux3);
+            corr=alignImagesConsideringMirrors(Irefm,Im,M,aux1,aux2,aux3,WRAP,bestCorrS0);
         applyGeometry(LINEAR, Ialigned, Ibackup, M, IS_NOT_INV, WRAP);
         Im=Ialigned;
 

@@ -130,7 +130,8 @@ TEST_F( FiltersTest, alignImages)
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
     MultidimArray<double> Ialigned1=ItransformedMirror();
-    alignImages(I(),Ialigned1,M1,DONT_WRAP,aux,aux2,aux3);
+    double bestCorrS0;
+    alignImages(I(),Ialigned1,M1,DONT_WRAP,aux,aux2,aux3,bestCorrS0);
 
     MultidimArray<double> Ialigned2;
     applyGeometry(BSPLINE3, Ialigned2, ItransformedMirror(), M1, IS_NOT_INV, DONT_WRAP);

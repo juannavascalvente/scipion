@@ -500,7 +500,7 @@ double bestShift(const MultidimArray< std::complex<double> > &FFTI1,
  * To apply these results you must shift I1 by (-shiftX,-shiftY,-shiftZ) or
  * I2 by (shiftX, shiftY,shiftZ).
  */
-void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
+double bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, double &shiftZ, CorrelationAux &aux,
                const MultidimArray<int> *mask=NULL);
 
@@ -511,7 +511,7 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
  * images. You can restrict the shift to a region defined by a mask (the maximum
  * will be sought where the mask is 1).
  */
-void bestNonwrappingShift(const MultidimArray< double >& I1,
+double bestNonwrappingShift(const MultidimArray< double >& I1,
                           const MultidimArray< double >& I2,
                           double& shiftX,
                           double& shiftY,
@@ -520,7 +520,7 @@ void bestNonwrappingShift(const MultidimArray< double >& I1,
 /** Translational search (non-wrapping).
  * Assumes that the FFTI1 is already computed.
  */
-void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< std::complex<double> > &FFTI1,
+double bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< std::complex<double> > &FFTI1,
                           const MultidimArray<double> &I2, double &shiftX, double &shiftY,
                           CorrelationAux &aux);
 
@@ -563,12 +563,12 @@ public:
  */
 double alignImages(const MultidimArray< double >& Iref,
                    MultidimArray< double >& I,
-                   Matrix2D< double >&M,
-                   bool wrap=WRAP);
+                   Matrix2D< double >&M, double &bestCorrS0,
+                   bool wrap=WRAP, double thresholdCorrS0=-1e38);
 
 /** Align two images considering mirrors */
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, MultidimArray<double>& I,
-                   Matrix2D<double>&M, bool wrap);
+                   Matrix2D<double>&M, bool wrap, double &bestCorrS0, double thresholdCorrS0=-1e38);
 
 /** Fast alignment of two images considering mirrors.
  * The transforms of Iref are presumed to be precomputed in IrefTransforms.
@@ -576,7 +576,7 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, Multidim
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms,
                                      MultidimArray<double>& I, Matrix2D<double> &M, AlignmentAux& aux,
                                      CorrelationAux& aux2, RotationalCorrelationAux &aux3, bool wrap,
-                                     const MultidimArray<int>* mask=NULL);
+									 double &bestCorrS0, const MultidimArray<int>* mask=NULL, double thresholdCorrS0=-1e38);
 
 /** Fast version of align two images
  * @ingroup Filters
@@ -587,7 +587,8 @@ double alignImages(const MultidimArray< double >& Iref,
                    bool wrap,
                    AlignmentAux &aux,
                    CorrelationAux &aux2,
-                   RotationalCorrelationAux &aux3);
+                   RotationalCorrelationAux &aux3,
+				   double &bestCorrS0, double thresholdCorrS0=-1e38);
 
 /** Auxiliary class for fast volume alignment */
 class VolumeAlignmentAux
@@ -645,8 +646,10 @@ double alignImagesConsideringMirrors(const MultidimArray< double >& Iref,
                                      AlignmentAux &aux,
                                      CorrelationAux &aux2,
                                      RotationalCorrelationAux &aux3,
-                                     bool wrap=WRAP,
-                                     const MultidimArray< int >* mask = NULL);
+                                     bool wrap,
+									 double &bestCorrS0,
+                                     const MultidimArray< int >* mask = NULL,
+									 double thresholdCorrS0=-1e38);
 
 /** Align a set of images.
  * Align a set of images and produce a class average as well as the set of

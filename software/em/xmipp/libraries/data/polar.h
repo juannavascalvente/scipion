@@ -809,7 +809,8 @@ void normalizedPolarFourierTransform(const MultidimArray<double> &in,
 
 /** Best rotation between two normalized polar Fourier transforms. */
 double best_rotation(const Polar< std::complex<double> > &I1,
-                     const Polar< std::complex<double> > &I2, RotationalCorrelationAux &aux);
+                     const Polar< std::complex<double> > &I2, RotationalCorrelationAux &aux,
+					 double &bestCorr);
 
 /** Align I2 rotationally to I1 */
 void alignRotationally(MultidimArray<double> &I1, MultidimArray<double> &I2,

@@ -160,6 +160,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
     << newAlignment.x << " " << newAlignment.y << std::endl;
 #endif
 
+    double bestCorrS0;
     for (double rot = rot0; rot <= rotF; rot += rot_step)
         for (double tilt = tilt0; tilt <= tiltF; tilt += tilt_step)
         {
@@ -204,7 +205,7 @@ void ProgTomoAlignRefinement::predict_angles(size_t idx,
             }
 
             // Look for better alignment
-            alignImages(theo(),Ip(),M, DONT_WRAP);
+            alignImages(theo(),Ip(),M, bestCorrS0, DONT_WRAP);
 
             // Measure the new correlation
             newCorr=correlationIndex(theo(),Ip(),&mask);

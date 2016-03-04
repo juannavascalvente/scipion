@@ -580,6 +580,7 @@ int ProgClassifyFTTRI::findFarthest(const MultidimArray<double> &seed,
     AlignmentAux aux;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
+    double bestCorrS0;
     for (int n=0; n<nmax; n++)
     {
         if (FTTRI)
@@ -591,7 +592,7 @@ int ProgClassifyFTTRI::findFarthest(const MultidimArray<double> &seed,
         if (FTTRI)
             d=fttri_distance(seed,candidate());
         else
-            d=alignImages(seed,candidate(),M,WRAP,aux,aux2,aux3);
+            d=alignImages(seed,candidate(),M,WRAP,aux,aux2,aux3,bestCorrS0);
         if ((d>maxDistance && FTTRI) || (d<maxDistance && !FTTRI))
         {
             maxDistance=d;
@@ -615,6 +616,7 @@ void ProgClassifyFTTRI::splitLargeClasses(bool FTTRI)
         AlignmentAux aux;
         CorrelationAux aux2;
         RotationalCorrelationAux aux3;
+        double bestCorrS0;
         while (bestEpsilonClasses.size()!=nref)
         {
             EpsilonClass &class_0=bestEpsilonClasses[0];
@@ -678,8 +680,8 @@ void ProgClassifyFTTRI::splitLargeClasses(bool FTTRI)
                 {
                     candidate().setXmippOrigin();
                     candidateCopy=candidate();
-                    double d1=alignImages(mSeed1,candidate(),M,WRAP,aux,aux2,aux3);
-                    double d2=alignImages(mSeed2,candidateCopy,M,WRAP,aux,aux2,aux3);
+                    double d1=alignImages(mSeed1,candidate(),M,WRAP,aux,aux2,aux3,bestCorrS0);
+                    double d2=alignImages(mSeed2,candidateCopy,M,WRAP,aux,aux2,aux3,bestCorrS0);
                     if (d1>d2)
                         c1.memberIdx.push_back(trueIdx);
                     else
@@ -896,6 +898,7 @@ void ProgClassifyFTTRI::computeClassNeighbours(bool FTTRI)
         int count=0;
         if (node->isMaster())
             init_progress_bar(nref);
+        double bestCorrS0;
         for (size_t i1=0; i1<nref-1; ++i1)
         {
             centroid_i1.aliasImageInStack(mCentroids,i1);
@@ -907,7 +910,7 @@ void ProgClassifyFTTRI::computeClassNeighbours(bool FTTRI)
                     centroid_i2p.aliasImageInStack(mCentroids,i2);
                     centroid_i2p.setXmippOrigin();
                     centroid_i2=centroid_i2p;
-                    A2D_ELEM(corr,i2,i1)=A2D_ELEM(corr,i1,i2)=alignImages(centroid_i1,centroid_i2,M,WRAP,aux,aux2,aux3);
+                    A2D_ELEM(corr,i2,i1)=A2D_ELEM(corr,i1,i2)=alignImages(centroid_i1,centroid_i2,M,WRAP,aux,aux2,aux3,bestCorrS0);
                 }
             }
             if (node->isMaster())
@@ -960,6 +963,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
     Matrix2D<double> M;
+    double bestCorrS0;
     for (size_t i=0; i<nref; i++)
         if (((i+1)%node->size)==node->rank)
         {
@@ -988,7 +992,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
                 else
                 {
                     candidateCopy=candidate();
-                    bestD=alignImages(own_class,candidateCopy,M,WRAP,aux,aux2,aux3);
+                    bestD=alignImages(own_class,candidateCopy,M,WRAP,aux,aux2,aux3,bestCorrS0);
                 }
                 VEC_ELEM(newAssignment,trueIdx)=i;
 
@@ -1005,7 +1009,7 @@ size_t ProgClassifyFTTRI::reassignImagesToClasses(bool FTTRI)
                     else
                     {
                         candidateCopy=candidate();
-                        d=alignImages(neighbour,candidateCopy,M,WRAP,aux,aux2,aux3);
+                        d=alignImages(neighbour,candidateCopy,M,WRAP,aux,aux2,aux3,bestCorrS0);
                     }
                     if ((d<bestD && FTTRI) || (d>bestD && !FTTRI))
                     {
@@ -1062,6 +1066,7 @@ void ProgClassifyFTTRI::writeResults(bool FTTRI)
     AlignmentAux aux;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
+    double bestCorrS0;
     for (int i=0; i<imax; i++)
     {
         MDclass.clear();
@@ -1097,7 +1102,7 @@ void ProgClassifyFTTRI::writeResults(bool FTTRI)
                 mdIn.getValue(MDL_IMAGE,fnCandidate,imgsId[trueIdx]);
                 candidate.read(fnCandidate);
                 candidate().setXmippOrigin();
-                A1D_ELEM(distance,n)=1-alignImages(centroid,candidate(),M,WRAP,aux,aux2,aux3);
+                A1D_ELEM(distance,n)=1-alignImages(centroid,candidate(),M,WRAP,aux,aux2,aux3,bestCorrS0);
             }
         }
         distance.indexSort(idx);
@@ -1146,6 +1151,7 @@ void ProgClassifyFTTRI::alignImagesWithinClasses()
     MetaData MDclass, MDaux;
     Matrix2D<double> M;
     MDRow row;
+    double bestCorrS0;
     for (size_t i=0; i<nref; i++)
         if (((i+1)%node->size)==node->rank)
         {
@@ -1176,7 +1182,7 @@ void ProgClassifyFTTRI::alignImagesWithinClasses()
                 	MDclass.getValue(MDL_IMAGE,fnCandidate,__iter.objId);
                     candidate.read(fnCandidate);
                     candidate().setXmippOrigin();
-                    double corr=alignImages(mCentroid,candidate(),M);
+                    double corr=alignImages(mCentroid,candidate(),M,bestCorrS0);
                     bool flip;
                     double scale, shiftx, shifty, psi;
                     transformationMatrix2Parameters2D(M, flip, scale, shiftx, shifty, psi);

@@ -105,12 +105,13 @@ void alignSingleImage(size_t nImg, ProgVolumeInitialSimulatedAnnealing &prm, Met
 	std::cout << "Image: " << fnImg << " oldCorr=" << oldCorr << std::endl;
 #endif
 	std::vector< Matrix2D<double> > allM;
+	double bestCorrS0;
 	for (size_t nGallery=0; nGallery<XSIZE(allCorrs); ++nGallery)
 	{
 		mCurrentImageAligned=mCurrentImage;
 		mGalleryProjection.aliasImageInStack(prm.gallery(),nGallery);
 		mGalleryProjection.setXmippOrigin();
-		double corr=alignImagesConsideringMirrors(mGalleryProjection,mCurrentImageAligned,M,DONT_WRAP);
+		double corr=alignImagesConsideringMirrors(mGalleryProjection,mCurrentImageAligned,M,DONT_WRAP, bestCorrS0);
 #ifdef DEBUG
 		mdGallery.getValue(MDL_MAXCC,corr,__iter.objId);
 #endif

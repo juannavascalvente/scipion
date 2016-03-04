@@ -196,6 +196,7 @@ public:
         AlignmentAux aux;
         CorrelationAux aux2;
         RotationalCorrelationAux aux3;
+        double bestCorrS0;
         FOR_ALL_ELEMENTS_IN_MATRIX1D(stillToDo)
         {
             if (!VEC_ELEM(stillToDo,i))
@@ -208,7 +209,7 @@ public:
             toClassify[i].getValue(MDL_IMAGE,fnImg);
             I.read(fnImg);
             I().setXmippOrigin();
-            double corr=alignImagesConsideringMirrors(lastImage(),I(),M,aux,aux2,aux3,&mask);
+            double corr=alignImagesConsideringMirrors(lastImage(),I(),M,aux,aux2,aux3,&mask,bestCorrS0);
             if (center)
             	centerImage(I(),aux2,aux3);
             if (corr>bestCorr)
@@ -259,7 +260,7 @@ public:
         toClassify[bestIdx].getValue(MDL_IMAGE,fnImg);
         I.read(fnImg);
         I().setXmippOrigin();
-        bestCorr=alignImagesConsideringMirrors(lastImage(),I(),M,aux,aux2,aux3,&mask);
+        bestCorr=alignImagesConsideringMirrors(lastImage(),I(),M,aux,aux2,aux3,&mask,bestCorrS0);
         if (center)
         	centerImage(I(),aux2,aux3);
         lastImage()=bestImage()=I();

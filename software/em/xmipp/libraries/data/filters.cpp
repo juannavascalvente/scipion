@@ -1234,7 +1234,7 @@ double bestShift(const MultidimArray< std::complex<double> > &FFTI1,
 }
 
 /* Best shift -------------------------------------------------------------- */
-void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
+double bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
                double &shiftX, double &shiftY, double &shiftZ, CorrelationAux &aux,
                const MultidimArray<int> *mask)
 {
@@ -1259,7 +1259,7 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
         if ((*mask).sum() < 2)
         {
             shiftX = shiftY = shiftZ = 0.;
-            return;
+            return 0;
         }
         else
         {
@@ -1310,8 +1310,7 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
                         neighbourhood = false;
                         break;
                     }
-                    else if (max
-                             / 1.414 > A3D_ELEM(Mcorr, k_actual, i_actual, j_actual))
+                    else if (max / 1.414 > A3D_ELEM(Mcorr, k_actual, i_actual, j_actual))
                     {
                         neighbourhood = false;
                         break;
@@ -1358,19 +1357,20 @@ void bestShift(const MultidimArray<double> &I1, const MultidimArray<double> &I2,
         shiftY = ymax / sumcorr;
         shiftZ = zmax / sumcorr;
     }
+    return max;
 }
 
 /* Best non-wrapping shift ------------------------------------------------- */
 //#define DEBUG
-void bestNonwrappingShift(const MultidimArray<double> &I1,
+double bestNonwrappingShift(const MultidimArray<double> &I1,
                           const MultidimArray<double> &I2, double &shiftX, double &shiftY,
                           CorrelationAux &aux)
 {
     aux.transformer1.FourierTransform((MultidimArray<double> &)I1, aux.FFT1, false);
-    bestNonwrappingShift(I1,aux.FFT1,I2,shiftX,shiftY,aux);
+    return bestNonwrappingShift(I1,aux.FFT1,I2,shiftX,shiftY,aux);
 }
 
-void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< std::complex<double> >&FFTI1,
+double bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< std::complex<double> >&FFTI1,
                           const MultidimArray<double> &I2, double &shiftX, double &shiftY,
                           CorrelationAux &aux)
 {
@@ -1406,7 +1406,10 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     //I1.translate(vectorR2(-testX,-testY),Iaux,DONT_WRAP);
     corr = fastCorrelation(I2, Iaux);
     if (corr > bestCorr)
+    {
         finalX = testX;
+        bestCorr = corr;
+    }
 #ifdef DEBUG
 
     std::cout << "shiftX=" << testX << " shiftY=" << testY
@@ -1422,7 +1425,10 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     //I1.translate(vectorR2(-testX,-testY),Iaux,DONT_WRAP);
     corr = fastCorrelation(I2, Iaux);
     if (corr > bestCorr)
+    {
         finalY = testY;
+        bestCorr = corr;
+    }
 #ifdef DEBUG
 
     std::cout << "shiftX=" << testX << " shiftY=" << testY
@@ -1441,6 +1447,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
     {
         finalX = testX;
         finalY = testY;
+        bestCorr = corr;
     }
 #ifdef DEBUG
     std::cout << "shiftX=" << testX << " shiftY=" << testY
@@ -1451,6 +1458,7 @@ void bestNonwrappingShift(const MultidimArray<double> &I1, const MultidimArray< 
 
     shiftX = finalX;
     shiftY = finalY;
+    return bestCorr;
 }
 #undef DEBUG
 
@@ -1515,7 +1523,7 @@ void computeAlignmentTransforms(const MultidimArray<double>& I, AlignmentTransfo
 
 double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms, MultidimArray<double>& I,
                    Matrix2D<double>&M, bool wrap, AlignmentAux &aux, CorrelationAux &aux2,
-                   RotationalCorrelationAux &aux3)
+                   RotationalCorrelationAux &aux3, double &bestCorrS0, double thresholdCorrS0)
 {
     I.checkDimension(2);
 
@@ -1529,6 +1537,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 
 	double shiftXSR=INITIAL_SHIFT_THRESHOLD, shiftYSR=INITIAL_SHIFT_THRESHOLD, bestRotSR=INITIAL_ROTATE_THRESHOLD;
 	double shiftXRS=INITIAL_SHIFT_THRESHOLD, shiftYRS=INITIAL_SHIFT_THRESHOLD, bestRotRS=INITIAL_ROTATE_THRESHOLD;
+	double corr;
 
     // Align the image with the reference
     for (int i = 0; i < 3; i++)
@@ -1537,7 +1546,9 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 		if (((shiftXSR > SHIFT_THRESHOLD) || (shiftXSR < (-SHIFT_THRESHOLD))) ||
 			((shiftYSR > SHIFT_THRESHOLD) || (shiftYSR < (-SHIFT_THRESHOLD))))
 		{
-			bestNonwrappingShift(Iref, IrefTransforms.FFTI, aux.IauxSR, shiftXSR, shiftYSR, aux2);
+			corr=bestNonwrappingShift(Iref, IrefTransforms.FFTI, aux.IauxSR, shiftXSR, shiftYSR, aux2);
+			if (i==0 && corr>bestCorrS0)
+				bestCorrS0 = corr; // Best correlation after shift in iteration 0
 			MAT_ELEM(aux.ASR,0,2) += shiftXSR;
 			MAT_ELEM(aux.ASR,1,2) += shiftYSR;
 			applyGeometry(LINEAR, aux.IauxSR, I, aux.ASR, IS_NOT_INV, wrap);
@@ -1547,8 +1558,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 		{
 			normalizedPolarFourierTransform(aux.IauxSR, aux.polarFourierI, true,
 											XSIZE(Iref) / 5, XSIZE(Iref) / 2, aux.plans, 1);
-
-			bestRotSR = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3);
+			bestRotSR = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3, corr);
 			rotation2DMatrix(bestRotSR, aux.R);
 			aux.ASR = aux.R * aux.ASR;
 			applyGeometry(LINEAR, aux.IauxSR, I, aux.ASR, IS_NOT_INV, wrap);
@@ -1559,7 +1569,7 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 		{
 			normalizedPolarFourierTransform(aux.IauxRS, aux.polarFourierI, true,
 											XSIZE(Iref) / 5, XSIZE(Iref) / 2, aux.plans, 1);
-			bestRotRS = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3);
+			bestRotRS = best_rotation(IrefTransforms.polarFourierI, aux.polarFourierI, aux3, corr);
 			rotation2DMatrix(bestRotRS, aux.R);
 			aux.ARS = aux.R * aux.ARS;
 			applyGeometry(LINEAR, aux.IauxRS, I, aux.ARS, IS_NOT_INV, wrap);
@@ -1568,16 +1578,19 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 		if (((shiftXRS > SHIFT_THRESHOLD) || (shiftXRS < (-SHIFT_THRESHOLD))) ||
 			((shiftYRS > SHIFT_THRESHOLD) || (shiftYRS < (-SHIFT_THRESHOLD))))
 		{
-			bestNonwrappingShift(Iref, IrefTransforms.FFTI, aux.IauxRS, shiftXRS, shiftYRS, aux2);
+			corr=bestNonwrappingShift(Iref, IrefTransforms.FFTI, aux.IauxRS, shiftXRS, shiftYRS, aux2);
+			if (i==0 && corr>bestCorrS0)
+				bestCorrS0 = corr; // Best correlation after shift in iteration 0
 			MAT_ELEM(aux.ARS,0,2) += shiftXRS;
 			MAT_ELEM(aux.ARS,1,2) += shiftYRS;
 			applyGeometry(LINEAR, aux.IauxRS, I, aux.ARS, IS_NOT_INV, wrap);
 		}
+		if (bestCorrS0<thresholdCorrS0)
+			break;
     }
 
     double corrRS = correlationIndex(aux.IauxRS, Iref);
     double corrSR = correlationIndex(aux.IauxSR, Iref);
-    double corr;
     if (corrRS > corrSR)
     {
         I = aux.IauxRS;
@@ -1595,27 +1608,27 @@ double alignImages(const MultidimArray<double>& Iref, const AlignmentTransforms&
 
 double alignImages(const MultidimArray<double>& Iref, MultidimArray<double>& I,
                    Matrix2D<double>&M, bool wrap, AlignmentAux &aux, CorrelationAux &aux2,
-                   RotationalCorrelationAux &aux3)
+                   RotationalCorrelationAux &aux3, double &bestCorrS0, double thresholdCorrS0)
 {
     Iref.checkDimension(2);
     AlignmentTransforms IrefTransforms;
     computeAlignmentTransforms(Iref,IrefTransforms, aux, aux2);
-    return alignImages(Iref, IrefTransforms, I, M, wrap, aux, aux2, aux3);
+    return alignImages(Iref, IrefTransforms, I, M, wrap, aux, aux2, aux3, bestCorrS0, thresholdCorrS0);
 }
 
 double alignImages(const MultidimArray<double>& Iref, MultidimArray<double>& I,
-                   Matrix2D<double>&M, bool wrap)
+                   Matrix2D<double>&M, double &bestCorrS0, bool wrap, double thresholdCorrS0)
 {
     AlignmentAux aux;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
-    return alignImages(Iref, I, M, wrap, aux, aux2, aux3);
+    return alignImages(Iref, I, M, wrap, aux, aux2, aux3, bestCorrS0, thresholdCorrS0);
 }
 
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const AlignmentTransforms& IrefTransforms,
                                      MultidimArray<double>& I, Matrix2D<double> &M, AlignmentAux& aux,
                                      CorrelationAux& aux2, RotationalCorrelationAux &aux3, bool wrap,
-                                     const MultidimArray<int>* mask)
+									 double &bestCorrS0, const MultidimArray<int>* mask, double thresholdCorrS0)
 {
     MultidimArray<double> Imirror;
     Matrix2D<double> Mmirror;
@@ -1623,8 +1636,9 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const Al
     Imirror.selfReverseX();
     Imirror.setXmippOrigin();
 
-    double corr=alignImages(Iref, IrefTransforms, I, M, wrap, aux, aux2, aux3);
-    double corrMirror=alignImages(Iref, IrefTransforms, Imirror, Mmirror, wrap, aux, aux2, aux3);
+    bestCorrS0=-1e38;
+    double corr=alignImages(Iref, IrefTransforms, I, M, wrap, aux, aux2, aux3, bestCorrS0, thresholdCorrS0);
+    double corrMirror=alignImages(Iref, IrefTransforms, Imirror, Mmirror, wrap, aux, aux2, aux3, bestCorrS0, thresholdCorrS0);
     if (mask!=NULL)
     {
     	corr = correlationIndex(Iref, I, mask);
@@ -1643,22 +1657,22 @@ double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, const Al
 }
 
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref, MultidimArray<double>& I,
-                   Matrix2D<double>&M, bool wrap)
+                   Matrix2D<double>&M, bool wrap, double &bestCorrS0, double thresholdCorrS0)
 {
     AlignmentAux aux;
     CorrelationAux aux2;
     RotationalCorrelationAux aux3;
-    return alignImagesConsideringMirrors(Iref, I, M, aux, aux2, aux3, wrap, NULL);
+    return alignImagesConsideringMirrors(Iref, I, M, aux, aux2, aux3, wrap, bestCorrS0, NULL, thresholdCorrS0);
 }
 
 double alignImagesConsideringMirrors(const MultidimArray<double>& Iref,
                                      MultidimArray<double>& I, Matrix2D<double> &M, AlignmentAux& aux,
                                      CorrelationAux& aux2, RotationalCorrelationAux &aux3, bool wrap,
-                                     const MultidimArray<int>* mask)
+									 double &bestCorrS0, const MultidimArray<int>* mask, double thresholdCorrS0)
 {
     AlignmentTransforms IrefTransforms;
     computeAlignmentTransforms(Iref,IrefTransforms, aux, aux2);
-    return alignImagesConsideringMirrors(Iref, IrefTransforms, I, M, aux, aux2, aux3, wrap, mask);
+    return alignImagesConsideringMirrors(Iref, IrefTransforms, I, M, aux, aux2, aux3, wrap, bestCorrS0, mask, thresholdCorrS0);
 }
 
 void alignSetOfImages(MetaData &MD, MultidimArray<double>& Iavg, int Niter,
@@ -1674,6 +1688,7 @@ void alignSetOfImages(MetaData &MD, MultidimArray<double>& Iavg, int Niter,
     size_t Nimgs;
     size_t Xdim, Ydim, Zdim;
     getImageSize(MD, Xdim, Ydim, Zdim, Nimgs);
+    double bestCorrS0;
     for (int n = 0; n < Niter; ++n)
     {
         bool lastIteration = (n == (Niter - 1));
@@ -1686,10 +1701,9 @@ void alignSetOfImages(MetaData &MD, MultidimArray<double>& Iavg, int Niter,
             I().setXmippOrigin();
             double corr;
             if (considerMirror)
-                corr = alignImagesConsideringMirrors(Iavg, I(), M, aux, aux2,
-                                                     aux3, WRAP);
+                corr = alignImagesConsideringMirrors(Iavg, I(), M, aux, aux2, aux3, WRAP, bestCorrS0);
             else
-                corr = alignImages(Iavg, I(), M, WRAP, aux, aux2, aux3);
+                corr = alignImages(Iavg, I(), M, WRAP, aux, aux2, aux3, bestCorrS0);
             InewAvg += I();
             if (n == 0)
                 Iavg = InewAvg;
@@ -2697,7 +2711,8 @@ void centerImageRotationally(MultidimArray<double> &I,
     MultidimArray<double> rotationalCorr;
     rotationalCorr.resize(2 * polarFourierI.getSampleNoOuterRing() - 1);
     aux.local_transformer.setReal(rotationalCorr);
-    double bestRot = best_rotation(polarFourierIx, polarFourierI, aux);
+    double corr;
+    double bestRot = best_rotation(polarFourierIx, polarFourierI, aux, corr);
 
     MultidimArray<double> auxI = I;
     rotate(3, I, auxI, -bestRot / 2, WRAP);
@@ -2844,7 +2859,8 @@ void centerImage(MultidimArray<double> &I, CorrelationAux &aux,
 
         normalizedPolarFourierTransform(Ix, polarFourierIx, false,
                                         XSIZE(Ix) / 5, XSIZE(Ix) / 2, plans);
-        double bestRot = best_rotation(polarFourierIx, polarFourierI, aux2);
+        double corr;
+        double bestRot = best_rotation(polarFourierIx, polarFourierI, aux2, corr);
         bestRot = realWRAP(bestRot,0,180);
         if (bestRot > 90)
             bestRot = bestRot - 180;

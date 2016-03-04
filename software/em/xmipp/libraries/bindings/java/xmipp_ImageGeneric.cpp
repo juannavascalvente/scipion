@@ -885,14 +885,14 @@ JNIEXPORT jdoubleArray JNICALL Java_xmipp_jni_ImageGeneric_alignImage
 		double corr,max=-MAXDOUBLE;
 		int maxIndex=0;
 
-
+		double bestCorrS0;
 		for (size_t i = 0; i < dim.ndim; ++i)
 		{
 			T.aliasImageInStack(*Tp,i);
 			tmpI = *I;
 			T.setXmippOrigin();
 			tmpI.setXmippOrigin();
-			corr = alignImages(T, tmpI, transformM, true, aux, aux2, aux3);
+			corr = alignImages(T, tmpI, transformM, true, aux, aux2, aux3, bestCorrS0);
 			if (corr > max)
 			{
 				max = corr;
@@ -946,7 +946,8 @@ JNIEXPORT void JNICALL Java_xmipp_jni_ImageGeneric_applyAlignment
 	   I=*Ip;
 	   T.setXmippOrigin();
 	   I.setXmippOrigin();
-	   alignImages(T, I, transformM, true, aux, aux2, aux3);
+	   double bestCorrS0;
+	   alignImages(T, I, transformM, true, aux, aux2, aux3, bestCorrS0);
 	   T+=I;
 	   centerImage(T, aux2, aux3, 3); //call centerImage without using rotation in implementation
 
@@ -982,7 +983,8 @@ JNIEXPORT void JNICALL Java_xmipp_jni_ImageGeneric_removeAlignment
 	   I=*Ip;
 	   T.setXmippOrigin();
 	   I.setXmippOrigin();
-	   alignImages(T, I, transformM, true, aux, aux2, aux3);
+	   double bestCorrS0;
+	   alignImages(T, I, transformM, true, aux, aux2, aux3, bestCorrS0);
 	   T-=I;
 
 
