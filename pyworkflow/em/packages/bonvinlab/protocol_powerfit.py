@@ -116,7 +116,8 @@ class ProtPowerFit(em.EMProtocol):
         args =  self.inputPDB.get().getFileName()
         args += ' %s %f' % (self._getMapMrc(), self.resolution)
         args += ' --angle %d' % self.angle
-
+        args += ' --directory %s' % self._getExtraPath()
+        
         if self.useLaplace:
             args += ' --laplace'
 
