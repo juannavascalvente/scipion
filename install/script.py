@@ -342,6 +342,12 @@ cythongsl = env.addModule(
     deps=[cython])
 # TODO: add checks for dependencies: GSL
 
+powerfit = env.addModule(
+    'powerfit',
+    tar='powerfit.tgz',
+    deps=[numpy, scipy],
+    default=False)
+
 
 #  ************************************************************************
 #  *                                                                      *
