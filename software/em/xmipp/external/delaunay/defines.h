@@ -7,12 +7,14 @@
 //#define WINDOWS
 //#define DELAUNAY_STATISTICS
 //#define LOCATION_STATISTICS
+
 // Checking scheduler 
 
 // Trigonometric defines.
 #ifndef PI
 #define PI         				3.1415926535
 #endif
+#define BULDBOT				1
 
 #define FAILURE     			0
 #define SUCCESS     			1
