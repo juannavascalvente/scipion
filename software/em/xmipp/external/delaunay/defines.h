@@ -14,7 +14,10 @@
 #ifndef PI
 #define PI         				3.1415926535
 #endif
+
+
 #define BULDBOT				1
+#define BULDBOT2			2
 
 #define FAILURE     			0
 #define SUCCESS     			1
