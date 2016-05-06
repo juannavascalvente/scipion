@@ -18,6 +18,7 @@
 
 #define BULDBOT				1
 #define BULDBOT2			2
+#define BULDBOT3			3
 
 #define FAILURE     			0
 #define SUCCESS     			1
