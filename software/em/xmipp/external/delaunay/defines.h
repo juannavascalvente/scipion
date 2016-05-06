@@ -16,8 +16,6 @@
 #endif
 
 
-#define BULDBOT				1
-
 #define FAILURE     			0
 #define SUCCESS     			1
 
