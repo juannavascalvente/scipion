@@ -8,7 +8,6 @@
 //#define DELAUNAY_STATISTICS
 //#define LOCATION_STATISTICS
 
-// Checking scheduler 
 
 // Trigonometric defines.
 #ifndef PI
