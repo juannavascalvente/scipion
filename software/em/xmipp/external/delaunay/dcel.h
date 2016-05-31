@@ -1,6 +1,7 @@
 #ifndef DCEL_H
 #define DCEL_H
 
+
 #include "point.h"
 #include "stack.h"
 #include <stdio.h>
