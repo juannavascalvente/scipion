@@ -29,6 +29,9 @@ int			higher_Y(struct Point_T *p1, struct Point_T *p2);
 int         lexicographic_Higher(struct Point_T *p1, struct Point_T *p2);
 void        copy_Point(struct Point_T *p1, struct Point_T *p2);
 
+
+
+
 // Distance.
 TYPE 	    distance( struct Point_T *p, struct Point_T *q);
 TYPE		signed_Area(struct Point_T *p1, struct Point_T *p2, struct Point_T *p3);
