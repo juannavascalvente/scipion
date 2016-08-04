@@ -9,7 +9,6 @@
 enum Turn_T {COLINEAR=1, LEFT_TURN=2, RIGHT=3};
 
 
-
 struct Point_T
 {
 	POINT_T		x;
