@@ -12,9 +12,6 @@ struct Point_T
 	POINT_T		x;
 	POINT_T		y;
 };
-
-
-
 /*****************************************************************************
 * Public functions declaration
 *****************************************************************************/
@@ -26,7 +23,6 @@ int			higher_X(struct Point_T *p1, struct Point_T *p2);
 int			higher_Y(struct Point_T *p1, struct Point_T *p2);
 int         lexicographic_Higher(struct Point_T *p1, struct Point_T *p2);
 void        copy_Point(struct Point_T *p1, struct Point_T *p2);
-
 
 // Distance.
 TYPE 	    distance( struct Point_T *p, struct Point_T *q);
