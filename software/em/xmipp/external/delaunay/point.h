@@ -36,5 +36,4 @@ int			has_Extreme_Coordinates(struct Point_T *p);
 
 // I/O interface
 void	    print_Point(struct Point_T *point);
-
 #endif
